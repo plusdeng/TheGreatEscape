@@ -18,10 +18,14 @@ public:
     ~EscapeView();
 
 signals:
-
+    void                move
+                        (QGraphicsPixmapItem* character, char direction);
 public slots:
     void adjustSize(int newSize);
     void                 setup();
+    void                 moveCharacter
+                        (QGraphicsPixmapItem* character, char direction);
+
 
 private:
     Ui::EscapeView                        *ui;
@@ -34,7 +38,8 @@ private:
     QList<QGraphicsPixmapItem*>       badGuys;
     QGraphicsPixmapItem*              goodGuy;
     int                              prevSize;
-    QString                     getIndOfPic();
+    QString                     getPicSize();
+    void                        keyPressEvent(QKeyEvent *);
 };
 
 #endif // ESCAPEVIEW_H

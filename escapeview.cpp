@@ -61,10 +61,13 @@ EscapeView::EscapeView(QWidget *parent) :
                      this,        SLOT(adjustSize(int)));
     QObject::connect(ui->startButton, SIGNAL(clicked()),
                      this,            SLOT(setup()));
+    QObject::connect(this,        SIGNAL(move(QGraphicsPixmapItem*,char)),
+                     this,        SLOT(moveCharacter(QGraphicsPixmapItem*,char)));
 }
 
 EscapeView::~EscapeView()
 {
+    std::cout << "Destructing..." << std::endl;
     delete ui;
 }
 
@@ -97,18 +100,20 @@ void EscapeView::adjustSize(int newSize)
     scene->removeItem(goodGuy);
 
     int ind = ui->sizeBox->value()-1;
-    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer" + getIndOfPic() + ".png"));
+    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer" + getPicSize() + ".png"));
     badGuys[0]->setX(tiles[0][ind]->boundingRect().x());
     badGuys[0]->setY(tiles[0][ind]->boundingRect().y());
 
-    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + getIndOfPic() + ".png"));
+    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + getPicSize() + ".png"));
     badGuys[1]->setX(tiles[ind][ind]->boundingRect().x());
     badGuys[1]->setY(tiles[ind][ind]->boundingRect().y());
 
-    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy" + getIndOfPic() + ".png"));
+    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy" + getPicSize() + ".png"));
     goodGuy->setX(tiles[ind/2][0]->boundingRect().x());
     goodGuy->setY(tiles[ind/2][0]->boundingRect().y());
-
+    goodGuy->setZValue(2);
+    badGuys[0]->setZValue(2);
+    badGuys[1]->setZValue(2);
 }
 
 void EscapeView::setup()
@@ -126,6 +131,14 @@ void EscapeView::setup()
             tiles[i][j]->setBrush(whiteBrush);
         }
     }
+
+    /* a karakterek kezdőpontjait alapból igazra állítjuk */
+    int ind = ui->sizeBox->value()-1;
+    trapAlreadySet[ind/2][0] = true;
+    trapAlreadySet[ind][ind] = true;
+    trapAlreadySet[0][ind]    = true;
+
+
     while (trapsToSet != 0)
     {
         int randX = qrand() % ui->sizeBox->value();
@@ -152,7 +165,7 @@ void EscapeView::setup()
 
 }
 
-QString EscapeView::getIndOfPic()
+QString EscapeView::getPicSize()
 {
     if (ui->sizeBox->value() == 36)
         return QString().setNum(20);
@@ -162,4 +175,39 @@ QString EscapeView::getIndOfPic()
         return QString().setNum(60);
     return QString().setNum(20);
 }
+
+void EscapeView::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_W)
+        move(goodGuy, 'W');
+    else if (event->key() == Qt::Key_S)
+        move(goodGuy, 'S');
+    else if (event->key() == Qt::Key_A)
+        move(goodGuy, 'A');
+    else if (event->key() == Qt::Key_D)
+        move(goodGuy, 'D');
+}
+
+void EscapeView::moveCharacter(QGraphicsPixmapItem *character, char direction)
+{
+    qreal tileSize = getPicSize().toDouble();
+    switch(direction)
+    {
+    case 'D':
+        character->moveBy(tileSize,0);
+        break;
+    case 'A':
+        character->moveBy(-tileSize, 0);
+        break;
+    case 'W':
+        character->moveBy(0, -tileSize);
+        break;
+    case 'S':
+        character->moveBy(0, tileSize);
+        break;
+    default:
+        break;
+    }
+}
+
 
