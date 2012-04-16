@@ -35,6 +35,26 @@ EscapeView::EscapeView(QWidget *parent) :
             trapAlreadySet[i].push_back(false);
         }
     }
+    /* fix from here */
+    for (int i = 0; i <= 3; ++i)
+    {
+        evilGuyPics.push_back(new QPixmap(":/images/evildoer" + QString().setNum(i*20) + ".png"));
+        goodGuyPics.push_back(new QPixmap(":/images/goodguy"  + QString().setNum(i*20) + ".png"));
+    }
+
+    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer20.png"));
+    badGuys[0]->setX(tiles[0][35]->boundingRect().x());
+    badGuys[0]->setY(tiles[0][35]->boundingRect().y());
+
+    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer20.png"));
+    badGuys[1]->setX(tiles[35][35]->boundingRect().x());
+    badGuys[1]->setY(tiles[35][35]->boundingRect().y());
+
+    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy20.png"));
+    goodGuy->setX(tiles[17][0]->boundingRect().x());
+    goodGuy->setY(tiles[17][0]->boundingRect().y());
+    /* to here */
+
     prevSize = 36;
     ui->graphicsView->setFixedSize(730,730);
     QObject::connect(ui->sizeBox, SIGNAL(valueChanged(int)),
@@ -47,6 +67,8 @@ EscapeView::~EscapeView()
 {
     delete ui;
 }
+
+
 
 void EscapeView::adjustSize(int newSize)
 {
@@ -66,11 +88,27 @@ void EscapeView::adjustSize(int newSize)
          tiles.push_back(QList<QGraphicsRectItem*>());
          for (int j = 0; j < newSize; ++j)
          {
-             //qreal iSize = i;
-             //qreal jSize = j;
              tiles[i][j] = scene->addRect(i*tileSize,j*tileSize,tileSize,tileSize,pen,brush);
          }
     }
+    // Fix this shit!
+    scene->removeItem(badGuys[0]);
+    scene->removeItem(badGuys[1]);
+    scene->removeItem(goodGuy);
+
+    int ind = ui->sizeBox->value()-1;
+    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer" + getIndOfPic() + ".png"));
+    badGuys[0]->setX(tiles[0][ind]->boundingRect().x());
+    badGuys[0]->setY(tiles[0][ind]->boundingRect().y());
+
+    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + getIndOfPic() + ".png"));
+    badGuys[1]->setX(tiles[ind][ind]->boundingRect().x());
+    badGuys[1]->setY(tiles[ind][ind]->boundingRect().y());
+
+    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy" + getIndOfPic() + ".png"));
+    goodGuy->setX(tiles[ind/2][0]->boundingRect().x());
+    goodGuy->setY(tiles[ind/2][0]->boundingRect().y());
+
 }
 
 void EscapeView::setup()
@@ -92,8 +130,7 @@ void EscapeView::setup()
     {
         int randX = qrand() % ui->sizeBox->value();
         int randY = qrand() % ui->sizeBox->value();
-        std::cout << "randX : " << randX << std::endl <<
-                     "randY : " << randY << std::endl;
+
         if (!trapAlreadySet[randX][randY])
         {
             tiles[randX][randY]->setBrush(redBrush);
@@ -112,5 +149,17 @@ void EscapeView::setup()
         }
         --trapsToSet;
     }
-    std::cout << "done" << std::endl;
+
 }
+
+QString EscapeView::getIndOfPic()
+{
+    if (ui->sizeBox->value() == 36)
+        return QString().setNum(20);
+    else if (ui->sizeBox->value() == 24)
+        return QString().setNum(40);
+    else
+        return QString().setNum(60);
+    return QString().setNum(20);
+}
+

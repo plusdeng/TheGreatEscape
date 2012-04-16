@@ -1,1 +1,10 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/images">
+        <file>evildoer20.png</file>
+        <file>evildoer40.png</file>
+        <file>evildoer60.png</file>
+        <file>goodguy20.png</file>
+        <file>goodguy40.png</file>
+        <file>goodguy60.png</file>
+    </qresource>
+</RCC>

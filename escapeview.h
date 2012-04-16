@@ -29,8 +29,12 @@ private:
     QList<QList<QGraphicsRectItem*> >   tiles;
     QTimer                             *timer;
     QList<QList <bool> >       trapAlreadySet;
+    QList<QPixmap *>              evilGuyPics;
+    QList<QPixmap *>              goodGuyPics;
+    QList<QGraphicsPixmapItem*>       badGuys;
+    QGraphicsPixmapItem*              goodGuy;
     int                              prevSize;
-
+    QString                     getIndOfPic();
 };
 
 #endif // ESCAPEVIEW_H
