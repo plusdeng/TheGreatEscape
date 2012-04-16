@@ -80,14 +80,13 @@ void EscapeView::adjustSize(int newSize)
              tiles[i][j] = scene->addRect(i*tileSize,j*tileSize,tileSize,tileSize,pen,brush);
          }
     }
-    // Fix this shit!
     setupChars();
 }
 
 void EscapeView::setup()
 {
     ui->startButton->setDisabled(true);
-    QBrush redBrush     (Qt::red);
+    QBrush redBrush  (Qt::red)  ;
     QBrush whiteBrush(Qt::white);
     QTime now = QTime::currentTime();
     qsrand(now.msec());
@@ -261,8 +260,6 @@ void EscapeView::setupChars()
     badGuys[0]->setY(tiles[0][ind]->boundingRect().y());
 
     badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + manager->getPicSize(ui->sizeBox->value()) + ".png"));
-    std::cout << "Loaded: " << ":/images/evildoer" + manager->getPicSize(ui->sizeBox->value()).toStdString() + ".png" << std::endl;
-    std::cout << "size: " << tiles[0][0]->boundingRect().width() << std::endl;
     badGuys[1]->setX(tiles[ind][ind]->boundingRect().x());
     badGuys[1]->setY(tiles[ind][ind]->boundingRect().y());
 
