@@ -21,12 +21,12 @@ EscapeManager::EscapeManager(QObject *parent) :
     }
 
     /* még jó enélkül is, de nem sokáig */
-    /*
+
     int ind = currentSize-1;
     trapAlreadySet[ind/2][0] = true;
     trapAlreadySet[ind][ind] = true;
     trapAlreadySet[0][ind]   = true;
-    */
+
 
     QObject::connect(goodGuyTimer, SIGNAL(timeout()),
                      this,         SLOT(resetCooldown()));
@@ -76,7 +76,7 @@ QString EscapeManager::getPicSize(int n)
     if (n == 36)
         return QString().setNum(20);
     else if (n == 24)
-        return QString().setNum(40); // át kell írni 30-ra!!
+        return QString().setNum(30); // át kell írni 30-ra!!
     else
         return QString().setNum(60);
     return QString().setNum(20);
@@ -111,6 +111,34 @@ void EscapeManager::resetTraps()
     trapAlreadySet[ind/2][0] = true;
     trapAlreadySet[ind][ind] = true;
     trapAlreadySet[0][ind]   = true;
+}
+
+bool EscapeManager::inStartingPos(int indX, int indY, int currentSize)
+{
+    currentSize--; // így pont a tömbös indexelést kapjuk
+    return (indX == currentSize && indY == currentSize) ||
+           (indX == currentSize/2 && indY == 0)         ||
+            (indX == 0 && indY == currentSize);
+}
+
+bool EscapeManager::inStartingPos(QGraphicsPixmapItem *character)
+{
+    int size = currentSize - 1; // a tömb indexelése miatt
+    int indX = posToIndX(character);
+    int indY = posToIndY(character);
+    return (indX == size && indY == size) ||
+           (indX == size/2 && indY == 0)  ||
+            (indX == 0 && indY == size);
+}
+
+void EscapeManager::loadPixmaps(QList<QPixmap> &goodGuyPics, QList<QPixmap> &badGuyPics)
+{
+    goodGuyPics.push_back(QPixmap(":/images/goodguy20.png"));
+    goodGuyPics.push_back(QPixmap(":/images/goodguy40.png"));
+    goodGuyPics.push_back(QPixmap(":/images/goodguy60.png"));
+    badGuyPics.push_back (QPixmap(":/images/evildoer20.png"));
+    badGuyPics.push_back (QPixmap(":/images/evildoer40.png"));
+    badGuyPics.push_back (QPixmap(":/images/evildoer60.png"));
 }
 
 void EscapeManager::startGame()
@@ -151,7 +179,7 @@ void EscapeManager::stopGame()
     goodGuyTimer->stop();
     badGuyTimer->stop();
     gameInProgress = false;
-    //resetTraps();
+    resetTraps();
     // már gázos ^
     resetField();
 }

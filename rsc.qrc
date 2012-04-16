@@ -6,5 +6,7 @@
         <file>goodguy20.png</file>
         <file>goodguy40.png</file>
         <file>goodguy60.png</file>
+        <file>evildoer30.png</file>
+        <file>goodguy30.png</file>
     </qresource>
 </RCC>
