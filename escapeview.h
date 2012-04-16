@@ -20,11 +20,16 @@ public:
 signals:
     void                move
                         (QGraphicsPixmapItem* character, char direction);
+    void                goodGuyMoved();
+    void                gameOver();
+    void                badGuysTrapped();
 public slots:
     void adjustSize(int newSize);
     void                 setup();
     void                 moveCharacter
                         (QGraphicsPixmapItem* character, char direction);
+private slots:
+    void moveAllBadGuys();
 
 
 private:
@@ -38,8 +43,13 @@ private:
     QList<QGraphicsPixmapItem*>       badGuys;
     QGraphicsPixmapItem*              goodGuy;
     int                              prevSize;
-    QString                     getPicSize();
+    void              initializeConnections();
+    void                         setupChars();
+    bool                    isGoingOutOfBounds
+                            (QGraphicsPixmapItem* character, char direction);
+    QString                     getPicSize(int n);
     void                        keyPressEvent(QKeyEvent *);
+    EscapeManager*                  manager;
 };
 
 #endif // ESCAPEVIEW_H

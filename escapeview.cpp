@@ -9,7 +9,7 @@ EscapeView::EscapeView(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
+    manager = new EscapeManager();
 
     timer = new QTimer(this);
     ui->graphicsView = new QGraphicsView(this);
@@ -36,12 +36,12 @@ EscapeView::EscapeView(QWidget *parent) :
         }
     }
     /* fix from here */
+    // ??? listában tárolt pixmapok ???
     for (int i = 0; i <= 3; ++i)
     {
         evilGuyPics.push_back(new QPixmap(":/images/evildoer" + QString().setNum(i*20) + ".png"));
         goodGuyPics.push_back(new QPixmap(":/images/goodguy"  + QString().setNum(i*20) + ".png"));
     }
-
     badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer20.png"));
     badGuys[0]->setX(tiles[0][35]->boundingRect().x());
     badGuys[0]->setY(tiles[0][35]->boundingRect().y());
@@ -57,12 +57,8 @@ EscapeView::EscapeView(QWidget *parent) :
 
     prevSize = 36;
     ui->graphicsView->setFixedSize(730,730);
-    QObject::connect(ui->sizeBox, SIGNAL(valueChanged(int)),
-                     this,        SLOT(adjustSize(int)));
-    QObject::connect(ui->startButton, SIGNAL(clicked()),
-                     this,            SLOT(setup()));
-    QObject::connect(this,        SIGNAL(move(QGraphicsPixmapItem*,char)),
-                     this,        SLOT(moveCharacter(QGraphicsPixmapItem*,char)));
+    initializeConnections();
+
 }
 
 EscapeView::~EscapeView()
@@ -95,25 +91,7 @@ void EscapeView::adjustSize(int newSize)
          }
     }
     // Fix this shit!
-    scene->removeItem(badGuys[0]);
-    scene->removeItem(badGuys[1]);
-    scene->removeItem(goodGuy);
-
-    int ind = ui->sizeBox->value()-1;
-    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer" + getPicSize() + ".png"));
-    badGuys[0]->setX(tiles[0][ind]->boundingRect().x());
-    badGuys[0]->setY(tiles[0][ind]->boundingRect().y());
-
-    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + getPicSize() + ".png"));
-    badGuys[1]->setX(tiles[ind][ind]->boundingRect().x());
-    badGuys[1]->setY(tiles[ind][ind]->boundingRect().y());
-
-    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy" + getPicSize() + ".png"));
-    goodGuy->setX(tiles[ind/2][0]->boundingRect().x());
-    goodGuy->setY(tiles[ind/2][0]->boundingRect().y());
-    goodGuy->setZValue(2);
-    badGuys[0]->setZValue(2);
-    badGuys[1]->setZValue(2);
+    setupChars();
 }
 
 void EscapeView::setup()
@@ -138,6 +116,9 @@ void EscapeView::setup()
     trapAlreadySet[ind][ind] = true;
     trapAlreadySet[0][ind]    = true;
 
+    // Ezt ki kell később törölni és átrakni resetre
+    ui->startButton->setDisabled(manager->isGameInProgress());
+
 
     while (trapsToSet != 0)
     {
@@ -148,6 +129,7 @@ void EscapeView::setup()
         {
             tiles[randX][randY]->setBrush(redBrush);
             trapAlreadySet[randX][randY] = true;
+            manager->setTrapAt(randX,randY);
         }
         else
         {
@@ -159,18 +141,20 @@ void EscapeView::setup()
             }while(trapAlreadySet[randX][randY]);
             tiles[randX][randY]->setBrush(redBrush);
             trapAlreadySet[randX][randY] = true;
+            manager->setTrapAt(randX, randY);
         }
         --trapsToSet;
     }
+    setupChars();
 
 }
 
-QString EscapeView::getPicSize()
+QString EscapeView::getPicSize(int n)
 {
-    if (ui->sizeBox->value() == 36)
+    if (n == 36)
         return QString().setNum(20);
-    else if (ui->sizeBox->value() == 24)
-        return QString().setNum(40);
+    else if (n == 24)
+        return QString().setNum(40); // át kell írni 30-ra!!
     else
         return QString().setNum(60);
     return QString().setNum(20);
@@ -190,7 +174,13 @@ void EscapeView::keyPressEvent(QKeyEvent *event)
 
 void EscapeView::moveCharacter(QGraphicsPixmapItem *character, char direction)
 {
-    qreal tileSize = getPicSize().toDouble();
+    qreal tileSize = manager->getPicSize(ui->sizeBox->value()).toDouble();
+    if(isGoingOutOfBounds(character, direction) || !(manager->isGameInProgress()))
+        return;
+
+    if(character == goodGuy && manager->isOnCooldown())
+        return;
+
     switch(direction)
     {
     case 'D':
@@ -208,6 +198,108 @@ void EscapeView::moveCharacter(QGraphicsPixmapItem *character, char direction)
     default:
         break;
     }
+    if (manager->wasTrapHit(goodGuy))
+        gameOver();
+    if (character == goodGuy)
+        goodGuyMoved();
+    std::cout << "X : goodGuy: " << character->pos().x() << " Y : goodGuy: " << character->pos().y() << std::endl;
+}
+
+void EscapeView::moveAllBadGuys()
+{
+    if(manager->wasTrapHit(badGuys[0]) && manager->wasTrapHit(badGuys[1]))
+        badGuysTrapped();
+
+    if(!manager->wasTrapHit(badGuys[0]))
+    {
+    moveCharacter(badGuys[0],
+                  manager->getDirection(goodGuy->pos(), badGuys[0]->pos()));
+    }
+    if(!manager->wasTrapHit(badGuys[1]))
+    {
+    moveCharacter(badGuys[1],
+                  manager->getDirection(goodGuy->pos(), badGuys[1]->pos()));
+    }
+}
+
+void EscapeView::initializeConnections()
+{
+    QObject::connect(ui->sizeBox, SIGNAL(valueChanged(int)),
+                     this,        SLOT(adjustSize(int)));
+    QObject::connect(ui->startButton, SIGNAL(clicked()),
+                     this,            SLOT(setup()));
+    QObject::connect(this,        SIGNAL(move(QGraphicsPixmapItem*,char)),
+                     this,        SLOT(moveCharacter(QGraphicsPixmapItem*,char)));
+    QObject::connect(ui->startButton, SIGNAL(clicked()),
+                     manager,         SLOT(startGame()));
+    QObject::connect(this,        SIGNAL(goodGuyMoved()),
+                     manager,     SLOT(startCooldown()));
+    QObject::connect(manager,     SIGNAL(moveBadGuys()),
+                     this,        SLOT(moveAllBadGuys()));
+    QObject::connect(ui->sizeBox, SIGNAL(valueChanged(int)),
+                     manager,     SLOT(changeSize(int)));
+    QObject::connect(this,       SIGNAL(gameOver()),
+                     manager,    SLOT(youLose()));
+    QObject::connect(this,        SIGNAL(badGuysTrapped()),
+                     manager,     SLOT(youWin()));
+    QObject::connect(manager,    SIGNAL(resetField()),
+                     this,       SLOT(setup()));
+}
+
+void EscapeView::setupChars()
+{
+    // buggy
+    scene->removeItem(badGuys[0]);
+    scene->removeItem(badGuys[1]);
+    scene->removeItem(goodGuy);
+
+    int ind = ui->sizeBox->value()-1;
+    badGuys[0] = scene->addPixmap(QPixmap(":/images/evildoer" + manager->getPicSize(ui->sizeBox->value()) + ".png"));
+    badGuys[0]->setX(tiles[0][ind]->boundingRect().x());
+    badGuys[0]->setY(tiles[0][ind]->boundingRect().y());
+
+    badGuys[1] = scene->addPixmap(QPixmap(":/images/evildoer" + manager->getPicSize(ui->sizeBox->value()) + ".png"));
+    badGuys[1]->setX(tiles[ind][ind]->boundingRect().x());
+    badGuys[1]->setY(tiles[ind][ind]->boundingRect().y());
+
+    goodGuy = scene->addPixmap(QPixmap(":/images/goodguy" + manager->getPicSize(ui->sizeBox->value()) + ".png"));
+    goodGuy->setX(tiles[ind/2][0]->boundingRect().x());
+    goodGuy->setY(tiles[ind/2][0]->boundingRect().y());
+    goodGuy->setZValue(2);
+    badGuys[0]->setZValue(2);
+    badGuys[1]->setZValue(2);
+}
+
+bool EscapeView::isGoingOutOfBounds(QGraphicsPixmapItem *character, char direction)
+{
+    int tileSize = manager->getPicSize(ui->sizeBox->value()).toInt();
+    int posX = character->pos().x();
+    int posY = character->pos().y();
+    switch(direction)
+    {
+    case 'D':
+        posX += tileSize;
+        break;
+    case 'S':
+        posY += tileSize;
+        break;
+    case 'A':
+        posX -= tileSize;
+        break;
+    case 'W':
+        posY -= tileSize;
+        break;
+    default:
+        break;
+    }
+    /* debug */
+    std::cout <<tileSize*(ui->sizeBox->value()-1) << std::endl;
+    std::cout << "PosX < 0? : " << (posX < 0) << std::endl <<
+            "PosY < 0? : " << (posY < 0) << std::endl <<
+            "posX > tileSize*(ui->sizeBox->value()-1)? : " << (posX > tileSize*(ui->sizeBox->value()-1)) << std::endl <<
+            "posY > tileSize*(ui->sizeBox->value()-1)? : " << (posY > tileSize*(ui->sizeBox->value()-1)) << std::endl;
+    /* debug end */
+    return posX < 0 || posY < 0 || posX > tileSize*(ui->sizeBox->value()-1) || posY > tileSize*(ui->sizeBox->value()-1);
 }
 
 
